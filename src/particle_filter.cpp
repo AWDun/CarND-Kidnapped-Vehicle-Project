@@ -104,18 +104,22 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
     //get the nearest predicted neighbor of each observation
     for(int i=0;i<observations.size();i++){
         //initialize nearest distance for first point
-        nearest_dist = sqrt((observations[i].x - predicted[0].x)*(observations[i].x - predicted[0].x) + (observations[i].y - predicted[0].y)*(observations[i].y - predicted[0].y));
+        //nearest_dist = sqrt((observations[i].x - predicted[0].x)*(observations[i].x - predicted[0].x) + (observations[i].y - predicted[0].y)*(observations[i].y - predicted[0].y));
+        //initialize nearest distance to a large number
+        nearest_dist = 10000000.0;
         
         for(int j=0;j<predicted.size();j++){
-            x_dist = observations[j].x - predicted[i].x;
-            y_dist = observations[j].y - predicted[i].y;
+            x_dist = observations[i].x - predicted[j].x;
+            y_dist = observations[i].y - predicted[j].y;
             distance = sqrt(x_dist*x_dist + y_dist*y_dist);
             if(distance < nearest_dist){
                 nearest_dist = distance;
                 nearest_index = j;
             }
+            //cout << "nearest distance: " << nearest_dist << endl;
         }
-        observations[i].id = nearest_index;
+        observations[i].id = predicted[nearest_index].id;
+        //cout << "observation id: " << observations[i].id << "x: " << observations[i].x << "y: " << observations[i].y << endl;
     }
 }
 
@@ -152,7 +156,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
             float y_lm = map_landmarks.landmark_list[k].y_f;
             int id_lm = map_landmarks.landmark_list[k].id_i;
             
-            if(fabs(x_p - x_lm) <= sensor_range && fabs(y_p - y_lm) <= sensor_range){
+            if((fabs(x_p - x_lm) <= sensor_range) && (fabs(y_p - y_lm) <= sensor_range)){
+                //cout << "lm id: " << id_lm << "lm x: " << x_lm << "lm y: " << y_lm << endl;
                 lmInRange.push_back(LandmarkObs{ id_lm, x_lm, y_lm });
             }
         }
@@ -166,7 +171,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
             x_obs = observations[j].x;
             y_obs = observations[j].y;
             x_obs_map = x_obs*cos(theta_p) - y_obs*sin(theta_p) + x_p;
-            y_obs_map = y_obs*sin(theta_p) + y_obs*cos(theta_p) + y_p;
+            y_obs_map = x_obs*sin(theta_p) + y_obs*cos(theta_p) + y_p;
+            //cout << "x obs map: " << x_obs_map << " y obs map: " << y_obs_map << endl;
+            //cout << "x_p: " << x_p << " y_p: " << y_p << endl;
             obsMap.push_back(LandmarkObs{ observations[j].id, x_obs_map, y_obs_map });
         }
         //Associate the predicted landmarks in range with the observations in map coordinate
@@ -188,19 +195,26 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
             x_obs_map = obsMap[l].x;
             y_obs_map = obsMap[l].y;
             int id_nearest_lm = obsMap[l].id;
+            //cout << "nearest landmark id: " << id_nearest_lm << endl;
             
             //loop through to find matching closest observation
             for(int m=0;m<lmInRange.size();m++){
+                //cout << "landmark ID: " << lmInRange[m].id << endl;
                 if(lmInRange[m].id == id_nearest_lm){
-                    x_lm = lmInRange[id_nearest_lm].x;
-                    y_lm = lmInRange[id_nearest_lm].y;
+                    x_lm = lmInRange[m].x;
+                    y_lm = lmInRange[m].y;
+                    //cout << "landmark_in x" << x_lm << endl;
+                    //cout << "landmark_in y" << y_lm << endl;
                 }
             }
+            //cout << "landmark_out x" << x_lm << endl;
+            //cout << "landmark_out y" << y_lm << endl;
             //calculate weight of particle
-            weight_obs = weight_obs * (1/(2*pi*sig_x*sig_y)*
-                                       exp(-(pow(x_obs_map - x_lm,2)/(2*sig_x*sig_x)
-                                             +pow(y_obs_map - y_lm,2)/(2*sig_y*sig_y))));
-            particles[i].weight = weight_obs;
+            double num =exp(-(pow(x_obs_map - x_lm,2)/(2*sig_x*sig_x) + pow(y_obs_map - y_lm,2)/(2*sig_y*sig_y)));
+            double denum = 2*pi*sig_x*sig_y;
+            weight_obs = num/denum;
+            //cout << "weight obs: " << weight_obs << endl;
+            particles[i].weight *= weight_obs;
         }
     }
     
@@ -232,6 +246,7 @@ void ParticleFilter::resample() {
     for(int n=0; n<num_particles; ++n) {
         new_particles.push_back(particles[d(gen)]);
     }
+    particles = new_particles;
     
 }
 
