@@ -19,6 +19,7 @@
 #include "particle_filter.h"
 
 using namespace std;
+static default_random_engine gen;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
     // TODO: Set the number of particles. Initialize all particles to first position (based on estimates
@@ -30,7 +31,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     num_particles = 100;
     
     //random distribution generator
-    default_random_engine gen;
+    //default_random_engine gen;
     
     //create normal distribution for x, y, and theta
     normal_distribution<double> dist_x(0, std[0]);
@@ -57,7 +58,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     //  http://www.cplusplus.com/reference/random/default_random_engine/
     
     //random distribution generator
-    default_random_engine gen;
+    //default_random_engine gen;
     
     //create normal distribution for x, y, and theta
     normal_distribution<double> dist_x(0, std_pos[0]);
@@ -186,7 +187,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         double pi = M_PI;
         double sig_x = std_landmark[0];
         double sig_y = std_landmark[1];
-        double weight_obs = 1.0;
+        double weight_obs = 0.0;
         double x_lm;
         double y_lm;
         
